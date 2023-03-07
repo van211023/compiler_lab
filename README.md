@@ -1,2 +1,2 @@
 # compiler
-NJU-Compiler
+Please observe academic integrity.
