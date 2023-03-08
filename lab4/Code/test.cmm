@@ -1,0 +1,19 @@
+int fun(int x1, int x2, int x3, int x4, int x5,int x6){
+    write(x1);
+    write(x2);
+    write(x3);
+    write(x4);
+    write(x5);
+    write(x6);
+}
+int main(){
+    int a[6];
+    a[0]=1;
+    a[1]=2;
+    a[2]=3;
+    a[3]=4;
+    a[4]=5;
+    a[5]=6;
+    fun(a[0],a[1],a[2],a[3],a[4],a[5]);
+    return 0;
+}

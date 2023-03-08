@@ -1,0 +1,184 @@
+%{
+    #include "mylib.h"
+    #ifndef YYSTYPE
+    #define YYSTYPE pNode
+    #endif
+    #include "syntax.tab.h"
+    // extern int findError;
+    // yylineno = 1;
+    int yycolumn = 1;
+        #define YY_USER_ACTION \
+     yylloc.first_line = yylloc.last_line = yylineno; \
+     yylloc.first_column = yycolumn; \
+     yylloc.last_column = yycolumn + yyleng - 1; \
+     yycolumn += yyleng;
+    //  FLOAT [+-]?({digit}*\.?{digit}+|{digit}+\.)
+%}
+%option yylineno
+digit [0-9]
+delim [ \t\n]
+INT [+-]?(0|[1-9]+{digit}?)
+INT_oct [+-]?0{digit}+
+INT_hex [+-]?0x[0-9a-zA-Z]+
+FLOAT [+-]?({digit}*\.{digit}+|{digit}+\.)
+ID [_a-zA-Z]+[_0-9a-zA-Z]*
+RELOP >|<|>=|<=|==|!=
+TYPE int|float
+
+%%
+"//" {
+    // printf("%s",yytext);
+    char c = input();
+    while(c!='\n')
+        c = input();
+}
+
+"*/" {
+    // printf("%s",yytext);
+    findError=1;
+    printError(yylineno,B_,func_,"Wrong Comments!");
+}
+"/*" {
+    // printf("%s",yytext);
+    char a = input(), b = input();
+    int end = 0;
+    while(!end){
+        if(a=='*' && b=='/'){
+            end = 1;
+        }
+        else if(a=='/' && b=='*'){
+            findError=1;
+            printError(yylineno, B_,func_,"Comments Nested!");
+            break;
+        }
+        else{
+            a = b;
+            b = input();
+        }
+    }//attention: error process
+}
+"+" {printf("%s",yytext); yylval = createNode(yylineno,symbol_,"PLUS",yytext,0); return PLUS;}
+"-" {printf("%s",yytext);yylval = createNode(yylineno,symbol_,"MINUS",yytext,0);return MINUS;}
+"*" {printf("%s",yytext);yylval = createNode(yylineno,symbol_,"STAR",yytext,0);return STAR;}
+"/" {printf("%s",yytext);yylval = createNode(yylineno,symbol_,"DIV",yytext,0);return DIV;}
+";" {printf("%s",yytext);yylval = createNode(yylineno,symbol_,"SEMI",yytext,0);return SEMI;}
+"," {printf("%s",yytext);yylval = createNode(yylineno,symbol_,"COMMA",yytext,0);return COMMA;}
+"=" {printf("%s",yytext);yylval = createNode(yylineno,symbol_,"ASSIGNOP",yytext,0);return ASSIGNOP;}
+{RELOP}  {printf("%s",yytext);yylval = createNode(yylineno,symbol_,"RELOP",yytext,0);return RELOP;}
+"&&" {printf("%s",yytext);yylval = createNode(yylineno,symbol_,"AND",yytext,0);return AND;}
+"||" {printf("%s",yytext);yylval = createNode(yylineno,symbol_,"OR",yytext,0);return OR;}
+"." {printf("%s",yytext);yylval = createNode(yylineno,symbol_,"DOT",yytext,0);return DOT;}
+"!" {printf("%s",yytext);yylval = createNode(yylineno,symbol_,"NOT",yytext,0);return NOT;}
+{TYPE} {printf("%s",yytext);yylval = createNode(yylineno,id_type,"TYPE",yytext,0);return TYPE;}
+"(" {printf("%s",yytext);yylval = createNode(yylineno,symbol_,"LP",yytext,0);return LP;}
+")" {printf("%s",yytext);yylval = createNode(yylineno,symbol_,"RP",yytext,0);return RP;}
+"[" {printf("%s",yytext);yylval = createNode(yylineno,symbol_,"LB",yytext,0);return LB;}
+"]" {printf("%s",yytext);yylval = createNode(yylineno,symbol_,"RB",yytext,0);return RB;}
+"{" {printf("%s",yytext);yylval = createNode(yylineno,symbol_,"LC",yytext,0);return LC;}
+"}" {printf("%s",yytext);yylval = createNode(yylineno,symbol_,"RC",yytext,0);return RC;}
+"struct" {printf("%s",yytext);yylval = createNode(yylineno,symbol_,"STRUCT",yytext,0);return STRUCT;}
+"return" {printf("%s",yytext);yylval = createNode(yylineno,symbol_,"RETURN",yytext,0);return RETURN;}
+"if" {printf("%s",yytext);yylval = createNode(yylineno,symbol_,"IF",yytext,0);return IF;}
+"else" {printf("%s",yytext);yylval = createNode(yylineno,symbol_,"ELSE",yytext,0);return ELSE;}
+"while" {printf("%s",yytext);yylval = createNode(yylineno,symbol_,"WHILE",yytext,0);return WHILE;}
+{ID} {printf("%s",yytext);yylval = createNode(yylineno,id_type,"ID",yytext,0);return ID;}
+{INT} {printf("%s",yytext);yylval = createNode(yylineno,int_,"INT",yytext,0);return INT;}
+{INT_oct} {
+    printf("%s",yytext);
+    //debug:
+    // printf("match:%s\n",yytext);
+    int x = 0;
+    int neg = 0;
+    int i = 0;
+    if(yytext[0]=='-'){
+        neg = 1;
+        i++;
+    }
+    else if(yytext[0]=='+')
+        i++;
+    for(i++; i < strlen(yytext); i++,x*=8){
+        if(yytext[i]>='0' && yytext[i]<='7'){
+            x += yytext[i]-'0';
+            // printf("i:%d\n",i);
+        }
+        else {
+            findError = 1;
+            
+            yylval = createNode(yylineno,int_,"INT","0\0",0);
+            printError(yylineno,A_,oct_,yytext);
+            return INT;
+            break;
+            // return;
+        }
+    }
+    if(!findError){
+        x /= 8;
+        if(neg)
+            x = -x;
+        char* str = int2char(x); 
+        // printf("%s\n",str);   
+        yylval = createNode(yylineno,int_,"INT",str,0);
+        return INT;
+    }
+
+}
+{INT_hex} {
+    printf("%s",yytext);
+    int x = 0;
+    int neg = 0;
+    int i = 0;
+    //debug:
+    // printf("match:%s\n",yytext);
+	// int n = atoi(yytext);
+	// printf("n:%d\n",n);
+    int len = strlen(yytext);
+    if(yytext[0]=='-'){
+        neg = 1;
+		x = -x;
+        i++;
+    }
+    else if(yytext[0]=='+')
+        i++;
+    if(yytext[i]=='0'&&yytext[i+1]=='x')
+        i+=2;
+    else{
+        findError = 1;
+        // printf("No \"0x\"\n");
+    }
+    // printf("%d %d\n",i,len);
+    for(; i < strlen(yytext); i++,x*=16){
+        if(yytext[i]>='0' && yytext[i]<='9'){
+            x += yytext[i]-'0';
+        }
+        else if(yytext[i]>='a'&&yytext[i]<='f')
+            x += 10+yytext[i]-'a';
+        else if(yytext[i]>='A'&&yytext[i]<='F')
+            x += 10+yytext[i]-'A';
+        else {
+            // printf("not match yytext[%d]:%c\n",i,yytext[i]);
+            findError = 1;
+            yylval = createNode(yylineno,int_,"INT","0\0",0);
+            
+            printError(yylineno,A_,hex_,yytext);
+            return INT;
+            break;
+            // return;
+        }
+    }
+    if(!findError){
+        x /= 16;
+        if(neg)
+            x = -x;
+        char* str = int2char(x);    
+        yylval = createNode(yylineno,int_,"INT",str,0);
+        return INT;
+    }
+}
+{FLOAT} {printf("%s",yytext);yylval = createNode(yylineno,float_,"FLOAT",yytext,0);return FLOAT;}
+{FLOAT}"e"{INT} {printf("%s",yytext);yylval = createNode(yylineno,float_,"FLOAT",yytext,0);return FLOAT;}
+
+\n {printf("%s",yytext);yycolumn = 1;}
+{delim}+ {printf("%s",yytext);}
+. {printf("%s",yytext); findError=1;printError(yylineno,A_,0,NULL);}
+
+%%

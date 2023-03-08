@@ -1,0 +1,24 @@
+FUNCTION main :
+t0 := #3  -4
+v0 := t0  -8
+DEC v1 12  -12
+t1 := #0  -24
+v2 := t1 -28
+LABEL label0 :
+IF v2 < v0 GOTO label1
+GOTO label2
+LABEL label1 :
+t4 := &v1  -32
+t5 := v2    -36
+t5 := #4 * t5 
+t3 := t4 + t5  -40
+READ t2   -44
+*t3 := t2  -40
+t7 := v2  -48
+t8 := #1  -52
+t6 := t7 + t8   -56
+v2 := t6  
+GOTO label0
+LABEL label2 :
+t9 := #0
+RETURN t9

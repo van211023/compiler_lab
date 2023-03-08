@@ -1,0 +1,9 @@
+struct tmp{
+  int x;
+};
+int main()
+{
+  struct tmp a[10];
+  int x = a[1].x;
+  return 0;
+}
